@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e1e', 'lineColor': '#8b949e', 'primaryColor': '#252526', 'primaryTextColor': '#d4d4d4', 'primaryBorderColor': '#404040', 'secondaryColor': '#252526', 'secondaryTextColor': '#d4d4d4', 'secondaryBorderColor': '#404040', 'tertiaryColor': '#252526', 'tertiaryTextColor': '#d4d4d4', 'tertiaryBorderColor': '#404040'}}}%%
+flowchart TB
+    subgraph dataSources [Data Sources]
+        ERP[ERP System<br/>Product Data, Prices, Inventory, Sales, Partners, User Roles, Authorization]
+        S3[S3 Storage<br/>Product Images]
+    end
+
+    subgraph ingestion [Data Ingestion Layer]
+        ERPConnector[ERP Connector]
+        S3Connector[S3 Connector]
+        CronSyncJobs[Cron Sync Jobs<br/>Price: 15-30min<br/>Inventory: 5-10min<br/>Sales: on-demand]
+    end
+
+    subgraph enrichment [Enrichment Layer]
+        EnrichmentEntity[Enrichment Entity<br/>Data Enrichment & Validation]
+    end
+
+    subgraph processing [Processing Layer]
+        CLIPModel[CLIP Model<br/>Vision & Text Encoder]
+    end
+
+    subgraph storage [Storage Layer]
+        VectorDB[(Vector Database)]
+        MetadataDB[(Metadata DB)]
+    end
+
+    %% Data Flow
+    ERP -->|Product Data, Prices, Inventory, Sales, Partners, User Roles, Authorization| ERPConnector
+    S3 -->|Product Images| S3Connector
+
+    ERPConnector -->|Raw Data| CronSyncJobs
+    CronSyncJobs -->|Sync Data| MetadataDB
+
+    ERPConnector -->|Raw Product Data| EnrichmentEntity
+    S3Connector -->|Image URLs/Paths| EnrichmentEntity
+
+    EnrichmentEntity -->|Images| CLIPModel
+    EnrichmentEntity -->|Text & Specs| CLIPModel
+
+    CLIPModel -->|Image Embeddings| VectorDB
+    CLIPModel -->|Text Embeddings| VectorDB
+    EnrichmentEntity -->|Product Metadata, Prices, Partners| MetadataDB
+
+    %% Styling
+    classDef dataSource fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef ingestion fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef enrichment fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef processing fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef storage fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class ERP,S3 dataSource
+    class ERPConnector,S3Connector,CronSyncJobs ingestion
+    class EnrichmentEntity enrichment
+    class CLIPModel processing
+    class VectorDB,MetadataDB storage

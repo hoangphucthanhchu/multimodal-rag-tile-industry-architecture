@@ -1,0 +1,86 @@
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e1e', 'lineColor': '#8b949e', 'primaryColor': '#252526', 'primaryTextColor': '#d4d4d4', 'primaryBorderColor': '#404040', 'secondaryColor': '#252526', 'secondaryTextColor': '#d4d4d4', 'secondaryBorderColor': '#404040', 'tertiaryColor': '#252526', 'tertiaryTextColor': '#d4d4d4', 'tertiaryBorderColor': '#404040'}}}%%
+flowchart TB
+    subgraph dataSources [Data Sources]
+        ERP[ERP System]
+        S3[S3 Storage]
+    end
+
+    subgraph ingestion [Data Ingestion Layer]
+        IngestionServices[Connectors & Sync Jobs]
+    end
+
+    subgraph processing [Processing Layer]
+        ProcessingServices[CLIP Encoding]
+    end
+
+    subgraph storage [Storage Layer]
+        VectorDB[(Vector Database)]
+        MetadataDB[(Metadata DB)]
+    end
+
+    subgraph services [Service Layer]
+        RetrievalService[Retrieval Service]
+        PricingService[Pricing Service]
+        AuthService[Authorization Service]
+        InventoryService[Inventory Service]
+    end
+
+    subgraph generation [Generation Layer]
+        LLM[LLM]
+    end
+
+    subgraph output [Output Layer]
+        OutputResults[Search, Q&A, Recommendations, Prices, Draft Orders]
+    end
+
+    subgraph users [Users]
+        UserInput[User Queries & Requests]
+    end
+
+    %% Main flows
+    ERP --> IngestionServices
+    S3 --> IngestionServices
+    IngestionServices --> ProcessingServices
+    ProcessingServices --> VectorDB
+    ProcessingServices --> MetadataDB
+
+    UserInput --> RetrievalService
+    VectorDB --> RetrievalService
+    MetadataDB --> RetrievalService
+
+    UserInput --> PricingService
+    MetadataDB --> PricingService
+
+    UserInput --> AuthService
+    MetadataDB --> AuthService
+
+    UserInput --> InventoryService
+    MetadataDB --> InventoryService
+    AuthService --> InventoryService
+
+    RetrievalService --> LLM
+    PricingService --> LLM
+    InventoryService --> LLM
+    LLM --> OutputResults
+
+    InventoryService -.->|Real-time Check| ERP
+    OutputResults -.->|Draft Orders| ERP
+
+    %% Styling
+    classDef dataSource fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef ingestion fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef processing fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef storage fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef services fill:#e0f2f1,stroke:#004d40,stroke-width:2px
+    classDef generation fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef output fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    classDef users fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+
+    class ERP,S3 dataSource
+    class IngestionServices ingestion
+    class ProcessingServices processing
+    class VectorDB,MetadataDB storage
+    class RetrievalService,PricingService,AuthService,InventoryService services
+    class LLM generation
+    class OutputResults output
+    class UserInput users

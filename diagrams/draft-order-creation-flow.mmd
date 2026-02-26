@@ -1,0 +1,72 @@
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#1e1e1e', 'lineColor': '#8b949e', 'primaryColor': '#252526', 'primaryTextColor': '#d4d4d4', 'primaryBorderColor': '#404040', 'secondaryColor': '#252526', 'secondaryTextColor': '#d4d4d4', 'secondaryBorderColor': '#404040', 'tertiaryColor': '#252526', 'tertiaryTextColor': '#d4d4d4', 'tertiaryBorderColor': '#404040'}}}%%
+flowchart TB
+    subgraph users [Users]
+        DraftOrderRequest[Draft Order Request<br/>Product List]
+        UserContext[User Context<br/>Sales Info, Partner/Company]
+    end
+
+    subgraph authorization [Authorization Service]
+        AuthorizationService[Authorization Service]
+        CompanyAuthManager[Company Authorization Manager]
+    end
+
+    subgraph inventory [Inventory Service]
+        InventoryValidator[Inventory Validator<br/>Real-time Check]
+        SalesContext[Sales Context Manager<br/>User-Sales Mapping]
+    end
+
+    subgraph storage [Storage Layer]
+        MetadataDB[(Metadata DB<br/>Sales Mapping, Authorization)]
+    end
+
+    subgraph erp [ERP System]
+        ERP[ERP System<br/>Real-time Inventory]
+    end
+
+    subgraph output [Output]
+        DraftOrder[Draft Order<br/>with Sales Info]
+        ErrorResponse[Error Response<br/>No Permission / Out of Stock]
+    end
+
+    %% Request Flow
+    DraftOrderRequest -->|Product List| InventoryValidator
+    UserContext -->|Sales Info| SalesContext
+    MetadataDB -->|Sales Mapping| SalesContext
+
+    %% Authorization Check
+    UserContext -->|User Role & Info| AuthorizationService
+    MetadataDB -->|User Roles, Sales-Company Authorization| AuthorizationService
+    AuthorizationService -->|Check Permissions| CompanyAuthManager
+    MetadataDB -->|Sales-Company Authorization| CompanyAuthManager
+    CompanyAuthManager -->|Authorized Companies| AuthorizationService
+    AuthorizationService -->|User Permissions| InventoryValidator
+
+    %% Validation Flow
+    InventoryValidator -->|Real-time Check| ERP
+    ERP -->|Inventory Status| InventoryValidator
+
+    %% Success Path
+    SalesContext -->|Sales Info| DraftOrder
+    InventoryValidator -->|Validated Products| DraftOrder
+    DraftOrder -->|Draft Order with Sales Info| ERP
+
+    %% Error Path
+    AuthorizationService -.->|No Permission| ErrorResponse
+    InventoryValidator -.->|Out of Stock| ErrorResponse
+
+    %% Styling
+    classDef users fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef authorization fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef inventory fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef storage fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef erp fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef output fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px
+
+    class DraftOrderRequest,UserContext users
+    class AuthorizationService,CompanyAuthManager authorization
+    class InventoryValidator,SalesContext inventory
+    class MetadataDB storage
+    class ERP erp
+    class DraftOrder output
+    class ErrorResponse error
